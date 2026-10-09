@@ -10,8 +10,10 @@
 #include <cmath>
 #include <fstream>
 #include <limits>
+#include <locale>
 #include <map>
 #include <set>
+#include <sstream>
 #include <utility>
 #include <vector>
 
@@ -140,8 +142,11 @@ public:
     double real() {
         const auto value = token();
         double result{};
-        const auto [end, error] = std::from_chars(value.data(), value.data() + value.size(), result);
-        if (error != std::errc{} || end != value.data() + value.size() || !std::isfinite(result)) {
+        // Apple's libc++ lacks floating-point from_chars; metadata always uses a decimal point.
+        std::istringstream stream(value);
+        stream.imbue(std::locale::classic());
+        stream >> std::noskipws >> result;
+        if (!stream || !stream.eof() || value.front() == '+' || !std::isfinite(result)) {
             context_.fail("invalid numeric source duration");
         }
         return result;

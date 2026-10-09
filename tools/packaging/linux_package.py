@@ -150,7 +150,9 @@ def checked_packages(stage, root):
     packer = runpy.run_path(str(REPOSITORY / "tools/pack_assets.py"))
     groups = packer["collect_files"](root / "manifest.txt")
     expected_paths = {path for files in groups.values() for path, _ in files}
-    require(payload_files(root).keys() == expected_paths, "Source asset tree contains missing or unlisted files")
+    # The Windows icon is embedded in the executable rather than a game asset package.
+    source_paths = payload_files(root).keys() - {"moorhuhn.ico"}
+    require(source_paths == expected_paths, "Source asset tree contains missing or unlisted files")
     result = {}
     for name, files in groups.items():
         filename = f"{name}.pak"

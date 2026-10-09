@@ -11,6 +11,7 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <locale>
 #include <span>
 #include <sstream>
 #include <type_traits>
@@ -208,6 +209,30 @@ void synthetic(const fs::path& fixture) {
     replacement("48000 1067", "0 1067", "integer out of bounds");
     replacement("0.022229166666666668", "1", "source duration disagrees");
     replacement("0.022229166666666668", "nan", "invalid numeric source duration");
+    for (const auto value : {"inf", "1e999", "0.022229166666666668junk", "+0.022229166666666668", "0,022229166666666668", "0x1p-2"}) {
+        replacement("0.022229166666666668", value, "invalid numeric source duration");
+    }
+    run("source duration ignores the global decimal separator", [&] {
+        struct CommaDecimal : std::numpunct<char> {
+            char do_decimal_point() const override {
+                return ',';
+            }
+        };
+        struct RestoreLocale {
+            std::locale previous = std::locale();
+            ~RestoreLocale() {
+                std::locale::global(previous);
+            }
+        };
+        const RestoreLocale restore;
+        std::locale::global(std::locale(std::locale::classic(), new CommaDecimal));
+        Temporary temp(fixture);
+        auto manifest = text(temp.root / "manifest.txt");
+        replace(manifest, "0.022229166666666668", "2.2229166666666668e-2");
+        write_text(temp.root / "manifest.txt", manifest);
+        const auto store = AssetStore::load(temp.root / "manifest.txt");
+        require(store.audio("typo22").source_duration_seconds == 0.022229166666666668, "source duration changed with the global locale");
+    });
     replacement("lookups 0", "lookups 1\nlookup indices/unknown.png 1", "unknown lookup ID");
     replacement("end", "end extra", "unexpected metadata data");
     mutate("truncated manifest", "truncated metadata", [](auto& manifest, const fs::path&) {
