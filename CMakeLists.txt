@@ -30,6 +30,8 @@ if(MOORHUHN_DISTRIBUTION)
         endif()
     endif()
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        # PipeWire inline functions also embed system header paths in SDL.
+        add_compile_options("-ffile-prefix-map=/usr/include=include")
         set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
     endif()
 endif()

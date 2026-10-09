@@ -146,7 +146,7 @@ public:
         std::istringstream stream(value);
         stream.imbue(std::locale::classic());
         stream >> std::noskipws >> result;
-        if (!stream || !stream.eof() || value.front() == '+' || !std::isfinite(result)) {
+        if (!stream || !stream.eof() || value.front() == '+' || value.find_first_not_of("0123456789.eE+-") != std::string::npos || !std::isfinite(result)) {
             context_.fail("invalid numeric source duration");
         }
         return result;

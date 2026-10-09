@@ -876,9 +876,8 @@ DrawList world_draw_list(const WorldSnapshot& w, const WorldDrawExtras& extras) 
 
     for (int layer = 1; layer <= 5; ++layer) {
         const auto index = static_cast<std::size_t>(layer - 1);
-        // Background layer3 specifically multiplies a binary64 1.9 operand.
-        const L factor = layer == 3 ? static_cast<L>(1.9) : k[index];
-        const auto offset = trunc_int(static_cast<L>(w.camera) * factor);
+        // Binary64 1.9 is just below 19/10. Preserve the original truncation on every CPU.
+        const auto offset = layer == 3 ? (w.camera * 19 - 1) / 10 : trunc_int(static_cast<L>(w.camera) * k[index]);
         const auto first = offset / 64;
         const int y = trunc_int(static_cast<L>(w.shake) * sy[index]) + (layer == 5 ? -8 : 0);
 
