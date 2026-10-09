@@ -1,0 +1,68 @@
+# Desktop runtime install. Dependency development installs are excluded.
+if(NOT MOORHUHN_DISTRIBUTION)
+    return()
+endif()
+if(NOT TARGET moorhuhn)
+    message(FATAL_ERROR "MOORHUHN_DISTRIBUTION requires the application")
+endif()
+if(NOT EXISTS "${PROJECT_SOURCE_DIR}/assets/manifest.txt")
+    message(FATAL_ERROR "Distribution requires assets/manifest.txt")
+endif()
+
+install(TARGETS moorhuhn RUNTIME DESTINATION . COMPONENT MoorhuhnRuntime)
+foreach(target IN LISTS MOORHUHN_RUNTIME_TARGETS)
+    # Copy the real library under its runtime name; no development symlinks are needed.
+    if(WIN32)
+        install(FILES "$<TARGET_FILE:${target}>" DESTINATION . COMPONENT MoorhuhnRuntime)
+    else()
+        install(FILES "$<TARGET_FILE:${target}>" DESTINATION .
+            RENAME "$<TARGET_SONAME_FILE_NAME:${target}>" COMPONENT MoorhuhnRuntime)
+    endif()
+endforeach()
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    foreach(runtime IN ITEMS libstdc++.so.6 libgcc_s.so.1)
+        execute_process(COMMAND "${CMAKE_CXX_COMPILER}" "-print-file-name=${runtime}"
+            OUTPUT_VARIABLE runtime_path OUTPUT_STRIP_TRAILING_WHITESPACE
+            COMMAND_ERROR_IS_FATAL ANY)
+        if(NOT EXISTS "${runtime_path}")
+            message(FATAL_ERROR "Missing compiler runtime: ${runtime}")
+        endif()
+        file(REAL_PATH "${runtime_path}" runtime_path)
+        install(FILES "${runtime_path}" DESTINATION . RENAME "${runtime}" COMPONENT MoorhuhnRuntime)
+    endforeach()
+endif()
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/images.pak" "${CMAKE_CURRENT_BINARY_DIR}/audio.pak"
+    DESTINATION . COMPONENT MoorhuhnRuntime)
+install(FILES "${PROJECT_SOURCE_DIR}/tools/packaging/README.md"
+    DESTINATION . COMPONENT MoorhuhnRuntime)
+
+file(READ "${PROJECT_SOURCE_DIR}/cmake/dependencies.lock.json" _moorhuhn_install_lock)
+set(_moorhuhn_notices "")
+string(JSON _moorhuhn_dependency_count LENGTH "${_moorhuhn_install_lock}" dependencies)
+math(EXPR _moorhuhn_dependency_last "${_moorhuhn_dependency_count} - 1")
+set(_moorhuhn_install_dependencies "")
+foreach(index RANGE ${_moorhuhn_dependency_last})
+    string(JSON name MEMBER "${_moorhuhn_install_lock}" dependencies ${index})
+    list(APPEND _moorhuhn_install_dependencies "${name}")
+endforeach()
+list(SORT _moorhuhn_install_dependencies)
+foreach(name IN LISTS _moorhuhn_install_dependencies)
+    foreach(field IN ITEMS version sha256 archive_root license_file license_sha256)
+        string(JSON ${field} GET "${_moorhuhn_install_lock}" dependencies "${name}" "${field}")
+    endforeach()
+    set(source "${MOORHUHN_DEPENDENCY_CACHE}/sources/${name}-${sha256}/${archive_root}")
+    file(SHA256 "${source}/${license_file}" actual_license_hash)
+    if(NOT actual_license_hash STREQUAL license_sha256)
+        message(FATAL_ERROR "Distribution license hash mismatch for ${name}")
+    endif()
+    set(notice_files "${license_file}")
+    foreach(notice_file IN LISTS notice_files)
+        file(READ "${source}/${notice_file}" notice)
+        string(APPEND _moorhuhn_notices "=== ${name} ${version} / ${notice_file} ===\n${notice}\n")
+    endforeach()
+endforeach()
+file(CONFIGURE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/LICENSES.txt"
+    CONTENT "${_moorhuhn_notices}" @ONLY)
+# The legacy tar packager also saves these notices in build/package-reports/.
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/LICENSES.txt"
+    DESTINATION . COMPONENT MoorhuhnRuntime)

@@ -1,0 +1,10 @@
+3
+shoot22 shoot22.mp3 2732 e63e9dba 4800 48000 4800 0.1
+reload22 reload22.mp3 3500 bc713e0a 7200 48000 7200 0.15
+bird22 bird22.mp3 2348 ff9ccad7 3600 48000 3600 0.075
+5
+fixture.fire play shoot22 1 0
+fixture.reload play reload22 0.75 0
+fixture.ambient play bird22 0.5 -1
+fixture.stop_ambient stop_sound bird22 1 0
+fixture.round_end stop_all none 1 0

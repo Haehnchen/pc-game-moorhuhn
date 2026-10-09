@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "checked_utc": "2026-10-07",
+  "dependencies": {
+    "sdl3": {
+      "name": "SDL3",
+      "version": "3.4.18",
+      "revision": "release-3.4.18",
+      "url": "https://github.com/libsdl-org/SDL/releases/download/release-3.4.18/SDL3-3.4.18.tar.gz",
+      "archive": "SDL3-3.4.18.tar.gz",
+      "archive_root": "SDL3-3.4.18",
+      "sha256": "9c75cf16330322c217dedd2e0609f1124f1b54b8633e763467b4684d0f4334a3",
+      "bytes": 15651004,
+      "license": "Zlib",
+      "license_file": "LICENSE.txt",
+      "license_sha256": "1c040b8271b37e5076359f8fd54240e371114112924d2df81ef87c7d6a1dfdfd"
+    },
+    "sdl3_mixer": {
+      "name": "SDL3_mixer",
+      "version": "3.2.4",
+      "revision": "release-3.2.4",
+      "url": "https://github.com/libsdl-org/SDL_mixer/releases/download/release-3.2.4/SDL3_mixer-3.2.4.tar.gz",
+      "archive": "SDL3_mixer-3.2.4.tar.gz",
+      "archive_root": "SDL3_mixer-3.2.4",
+      "sha256": "182a07c745375e113dc740d43964ff21b0be29f29f59876c4dbc4db3d32f6901",
+      "bytes": 5161139,
+      "license": "Zlib",
+      "license_file": "LICENSE.txt",
+      "license_sha256": "e36997fe492c48e7ed873065cc3a694f38e8189a328d3709099ffdc9a8843f4c"
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {"major": 3, "minor": 25, "patch": 0},
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "cacheVariables": {"BUILD_TESTING": true}
+    },
+    {
+      "name": "debug",
+      "inherits": "base",
+      "binaryDir": "${sourceDir}/build/debug",
+      "cacheVariables": {"CMAKE_BUILD_TYPE": "Debug"}
+    },
+    {
+      "name": "release",
+      "inherits": "base",
+      "binaryDir": "${sourceDir}/build/release",
+      "cacheVariables": {"CMAKE_BUILD_TYPE": "Release"}
+    },
+    {
+      "name": "sanitized",
+      "inherits": "debug",
+      "binaryDir": "${sourceDir}/build/sanitized",
+      "cacheVariables": {"MOORHUHN_SANITIZERS": true}
+    },
+    {
+      "name": "iterate",
+      "displayName": "Linux iteration (-Og, debug info, ccache)",
+      "inherits": "debug",
+      "binaryDir": "${sourceDir}/build/iterate",
+      "condition": {"type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux"},
+      "cacheVariables": {
+        "CMAKE_CXX_FLAGS_DEBUG": "-Og -g",
+        "CMAKE_CXX_COMPILER_LAUNCHER": "ccache"
+      },
+      "environment": {"CCACHE_DIR": "${sourceDir}/build/ccache"}
+    }
+  ],
+  "buildPresets": [
+    {"name": "debug", "configurePreset": "debug"},
+    {"name": "release", "configurePreset": "release"},
+    {"name": "sanitized", "configurePreset": "sanitized"},
+    {"name": "iterate", "configurePreset": "iterate", "jobs": 4}
+  ],
+  "testPresets": [
+    {"name": "debug", "configurePreset": "debug", "output": {"outputOnFailure": true}},
+    {"name": "release", "configurePreset": "release", "output": {"outputOnFailure": true}},
+    {"name": "sanitized", "configurePreset": "sanitized", "output": {"outputOnFailure": true}},
+    {
+      "name": "iterate", "configurePreset": "iterate",
+      "output": {"outputOnFailure": true},
+      "environment": {"SDL_VIDEODRIVER": "dummy", "SDL_AUDIODRIVER": "moorhuhn-disabled"}
+    }
+  ]
+}

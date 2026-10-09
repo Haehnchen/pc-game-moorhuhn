@@ -1,0 +1,34 @@
+BasedOnStyle: LLVM
+IndentWidth: 4
+ContinuationIndentWidth: 4
+ColumnLimit: 180
+NamespaceIndentation: None
+PointerAlignment: Left
+ReferenceAlignment: Left
+AccessModifierOffset: -4
+AlignAfterOpenBracket: DontAlign
+AlignTrailingComments:
+  Kind: Never
+BreakBeforeBraces: Attach
+BreakBeforeBinaryOperators: NonAssignment
+AllowShortBlocksOnASingleLine: Never
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortEnumsOnASingleLine: false
+AllowShortLambdasOnASingleLine: Empty
+InsertBraces: true
+SeparateDefinitionBlocks: Always
+MaxEmptyLinesToKeep: 1
+EmptyLineBeforeAccessModifier: Always
+IndentCaseLabels: true
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex: '^"'
+    Priority: 1
+  - Regex: '^<(SDL3|SDL3_image|SDL3_mixer|nlohmann)/'
+    Priority: 2
+  - Regex: '^<'
+    Priority: 3
+ReflowComments: Never

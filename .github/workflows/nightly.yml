@@ -1,0 +1,240 @@
+name: Nightly release
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-release
+  cancel-in-progress: false
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes \
+            build-essential cmake git ninja-build \
+            pkg-config python3 python3-venv unzip \
+            libasound2-dev libdbus-1-dev libdecor-0-dev libdrm-dev \
+            libegl1-mesa-dev libfribidi-dev libgbm-dev libgl1-mesa-dev \
+            libgles2-mesa-dev libibus-1.0-dev libpipewire-0.3-dev \
+            libpulse-dev libudev-dev libwayland-dev libx11-dev \
+            libxcursor-dev libxext-dev libxfixes-dev libxi-dev \
+            libxkbcommon-dev libxrandr-dev libxss-dev libxtst-dev
+
+      - name: Install pinned formatter
+        run: |
+          python3 -m venv "$RUNNER_TEMP/clang-format"
+          "$RUNNER_TEMP/clang-format/bin/pip" install --disable-pip-version-check clang-format==21.1.8
+          echo "$RUNNER_TEMP/clang-format/bin" >> "$GITHUB_PATH"
+
+      - name: Check and build Moorhuhn
+        run: |
+          make format-check
+          env -u WAYLAND_DISPLAY SDL_VIDEODRIVER=dummy \
+            SDL_RENDER_DRIVER=software SDL_AUDIODRIVER=dummy make check
+          env -u WAYLAND_DISPLAY SDL_VIDEODRIVER=dummy \
+            SDL_RENDER_DRIVER=software SDL_AUDIODRIVER=dummy \
+            ASAN_OPTIONS=detect_leaks=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
+            make check-sanitizers
+          make release
+
+      - name: Verify release archives
+        run: |
+          set -euo pipefail
+          test -s dist/moorhuhn-Linux-x86_64.zip
+          test -s dist/moorhuhn-Linux-x86_64-bundled.zip
+          unzip -tq dist/moorhuhn-Linux-x86_64.zip
+          unzip -tq dist/moorhuhn-Linux-x86_64-bundled.zip
+
+      - name: Store release archives
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: nightly-linux
+          path: |
+            dist/moorhuhn-Linux-x86_64.zip
+            dist/moorhuhn-Linux-x86_64-bundled.zip
+          if-no-files-found: error
+          retention-days: 1
+
+  build-windows:
+    runs-on: windows-2025
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: msys2 {0}
+    env:
+      CC: gcc
+      CXX: g++
+    steps:
+      - name: Configure checkout line endings
+        shell: pwsh
+        run: git config --global core.autocrlf input
+
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Set up MSYS2 UCRT64
+        uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 # v2.32.0
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            git
+            make
+            unzip
+          pacboy: >-
+            cmake:p
+            gcc:p
+            ninja:p
+            pkgconf:p
+            python:p
+
+      - name: Check and build Moorhuhn
+        run: |
+          set -euo pipefail
+          SDL_VIDEODRIVER=dummy SDL_RENDER_DRIVER=software \
+            SDL_AUDIODRIVER=dummy make check CTEST_ARGS="-E lint.format"
+          make release
+
+      - name: Verify bundled release
+        run: |
+          set -euo pipefail
+          archive=dist/moorhuhn-Windows-x86_64-bundled.zip
+          test -s "$archive"
+          unzip -tq "$archive"
+
+      - name: Store release archive
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: nightly-windows-x86_64
+          path: dist/moorhuhn-Windows-x86_64-bundled.zip
+          if-no-files-found: error
+          retention-days: 1
+
+  build-macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    env:
+      MACOSX_DEPLOYMENT_TARGET: '13.0'
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Install build dependencies
+        run: brew install ninja pkg-config
+
+      - name: Check and build Moorhuhn
+        run: |
+          SDL_VIDEODRIVER=dummy SDL_RENDER_DRIVER=software \
+            SDL_AUDIODRIVER=dummy make check CTEST_ARGS="-E lint.format"
+          make release CMAKE_ARGS="-DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} -DCMAKE_OSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET"
+
+      - name: Verify bundled release
+        run: |
+          set -euo pipefail
+          archive="dist/moorhuhn-macOS-${{ matrix.arch }}-bundled.zip"
+          test -s "$archive"
+          package_dir=$(mktemp -d "$RUNNER_TEMP/moorhuhn-package.XXXXXX")
+          unzip -q "$archive" -d "$package_dir"
+          app="$package_dir/Moorhuhn.app"
+          binary="$app/Contents/MacOS/Moorhuhn"
+          test -x "$binary"
+          codesign --verify --deep --strict "$app"
+          lipo -archs "$binary" | grep -qw "${{ matrix.arch }}"
+          dependencies=$(otool -L "$binary")
+          if printf '%s\n' "$dependencies" | tail -n +2 | \
+            grep -E '(/opt/homebrew|/usr/local|/Users/runner/work|/private/var/folders)'; then
+            echo "::error::Release binary depends on build-machine libraries."
+            exit 1
+          fi
+
+      - name: Store release archive
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: nightly-macos-${{ matrix.arch }}
+          path: dist/moorhuhn-macOS-${{ matrix.arch }}-bundled.zip
+          if-no-files-found: error
+          retention-days: 1
+
+  release:
+    if: ${{ success() && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+    needs: [build-linux, build-windows, build-macos]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download release archives
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          pattern: nightly-*
+          path: dist
+          merge-multiple: true
+
+      - name: Verify release archives
+        run: |
+          set -euo pipefail
+          # Advance nightly only with a complete set from this revision.
+          expected=(
+            moorhuhn-Linux-x86_64.zip
+            moorhuhn-Linux-x86_64-bundled.zip
+            moorhuhn-Windows-x86_64-bundled.zip
+            moorhuhn-macOS-arm64-bundled.zip
+            moorhuhn-macOS-x86_64-bundled.zip
+          )
+          mkdir -p verified
+          for archive in "${expected[@]}"; do
+            test -s "dist/$archive"
+            unzip -tq "dist/$archive"
+            cp "dist/$archive" verified/
+          done
+
+      - name: Publish rolling nightly release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          tag=nightly
+          notes="Automated build of ${GITHUB_SHA} from ${GITHUB_REF_NAME}. See [README](https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_SHA}/README.md)."
+
+          if gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/${tag}" >/dev/null 2>&1; then
+            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/${tag}" \
+              --raw-field sha="$GITHUB_SHA" --field force=true >/dev/null
+          else
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" \
+              --raw-field ref="refs/tags/${tag}" --raw-field sha="$GITHUB_SHA" >/dev/null
+          fi
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release edit "$tag" --title "Nightly build" --notes "$notes" --prerelease
+          else
+            gh release create "$tag" --verify-tag \
+              --title "Nightly build" --notes "$notes" --prerelease
+          fi
+          gh release upload "$tag" verified/*.zip --clobber

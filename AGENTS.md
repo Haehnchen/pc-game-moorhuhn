@@ -1,0 +1,5 @@
+- Stack: C++23, SDL3, SDL3_mixer; Python for asset and packaging tools.
+- Build requirements: CMake 3.25+, Ninja, Make, a C++23 compiler, Python 3.
+- Code: clear names, RAII, simple functions, no unnecessary abstractions. Comments explain non-obvious decisions.
+- Layout: source code in `src/`; tests in `tests/`; assets in `assets/`.
+- Checks: clang-format, compiler warnings as errors, CTest, ASan, UBSan.

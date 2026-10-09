@@ -1,0 +1,11 @@
+# Local research and build output
+/moorhuhn.exe
+/.idea/
+/.local/
+/.venv/
+/reference/
+/dist/
+/build/
+__pycache__/
+*.pyc
+.DS_Store

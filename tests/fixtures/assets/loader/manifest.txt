@@ -1,0 +1,9 @@
+MHMANIFEST 1
+tables tables.txt
+images 1
+image credits credits.pal 18 indices/credits.png 73 1
+frame 0 0 3 2
+audio 1
+sound typo22 audio/typo22.mp3 1196 1067 48000 1067 mp3 2 0.022229166666666668
+lookups 0
+end

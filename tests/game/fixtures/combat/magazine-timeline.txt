@@ -1,0 +1,17 @@
+10 7 shot 0 1 0
+20 6 shot 1 1 0
+30 5 shot 2 1 0
+40 4 shot 3 1 0
+50 3 shot 4 1 0
+60 2 shot 5 1 0
+70 1 shot 6 1 0
+80 0 shot 7 1 0
+90 0 empty -1 1 0
+100 0 none -1 2 0 1
+110 8 reloaded -1 1 1
+110 7 shot 0 1 0
+111 7 none -1 0
+112 7 none -1 1 1
+113 6 shot 1 3 0 0 0
+90000 5 shot 2 1 0
+90001 5 ended -1 1 0
