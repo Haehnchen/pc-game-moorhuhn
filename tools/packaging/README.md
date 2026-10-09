@@ -11,7 +11,7 @@ Extract the entire archive before starting:
   Local builds require the build machine's glibc version or newer. The ZIP with
   `-bundled` includes the compiler runtimes; the smaller ZIP uses system runtimes.
 - **Windows:** run `moorhuhn.exe` with the supplied DLLs in the same folder.
-- **macOS 13+:** open `Moorhuhn.app`. Choose arm64 for Apple Silicon or x86_64 for Intel.
+- **macOS 13.3+:** open `Moorhuhn.app`. Choose arm64 for Apple Silicon or x86_64 for Intel.
   The app is ad-hoc signed.
 
 Your name and highscores save automatically in your user profile.

@@ -233,7 +233,7 @@ def _macos(executable: Path, stage: Path, resources: dict[str, Path], version: s
             "CFBundlePackageType": "APPL",
             "CFBundleShortVersionString": version,
             "CFBundleVersion": version,
-            "LSMinimumSystemVersion": "13.0",
+            "LSMinimumSystemVersion": "13.3",
             "NSHighResolutionCapable": True,
         }, info)
 

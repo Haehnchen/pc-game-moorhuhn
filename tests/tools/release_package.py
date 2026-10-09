@@ -226,7 +226,7 @@ class ReleaseTests(unittest.TestCase):
             info = plistlib.loads(archive.read(prefix + "Info.plist"))
             self.assertEqual(info["CFBundleExecutable"], "Moorhuhn")
             self.assertEqual(info["CFBundleShortVersionString"], "0.1.0")
-            self.assertEqual(info["LSMinimumSystemVersion"], "13.0")
+            self.assertEqual(info["LSMinimumSystemVersion"], "13.3")
             self.assertEqual(archive.read(prefix + "Resources/images.pak"), b"packed images")
             self.assertEqual(archive.read(prefix + "Resources/audio.pak"), b"packed audio")
             self.assertEqual(json.loads(archive.read(prefix + "Resources/release-info.json"))["architecture"], "arm64")
